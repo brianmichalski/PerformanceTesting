@@ -19,7 +19,7 @@ test_type = sys.argv[1]
 # Base URL
 base_url = common.get_base_url()
 # Results file
-output_file = common.get_results_filename(f"{test_type}_test")
+output_file = common.get_results_filename(test_type)
 # Thread-local storage for session objects
 thread_local = threading.local()
 # Simultaneous threads
