@@ -77,7 +77,7 @@ def random_sleep():
 
 
 def get_random_load():
-    return random.randrange(5, 90)
+    return random.randrange(5, 73)
 
 
 if __name__ == "__main__":
