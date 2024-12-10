@@ -1,0 +1,55 @@
+# Define QA Environment
+Vagrant.configure("2") do |config|
+  # Define Box-VM for Web-Server
+  config.vm.define "Web-Server" do |wb|
+    wb.vm.box = "ubuntu/focal64"
+    wb.vm.hostname = "web-server"
+    wb.vm.provider "virtualbox" do |vb|
+      vb.cpus = 2
+      vb.memory = "2048"
+    end
+    wb.vm.network "private_network", ip: "192.168.33.20"
+    wb.vm.provision "shell", path: "install_app_server.sh", privileged: true
+
+    $setup_project = <<-'SCRIPT'
+      sudo sed -i '/<VirtualHost \*:80>/a \
+        <Directory /var/www/html/OnlineNewsSite>\
+                AllowOverride All\
+        </Directory>' /etc/apache2/sites-enabled/000-default.conf
+
+      sudo systemctl restart apache2
+
+      # set the database parameters
+      sudo sed -i "s/define('DB_HOST'.*/define('DB_HOST', '192.168.33.30');/" /var/www/html/OnlineNewsSite/index.php
+      sudo sed -i "s/define('DB_USERNAME'.*/define('DB_USERNAME', 'midterm');/" /var/www/html/OnlineNewsSite/index.php
+      sudo sed -i "s/define('DB_PASSWORD'.*/define('DB_PASSWORD', '123456');/" /var/www/html/OnlineNewsSite/index.php
+    SCRIPT
+
+    wb.vm.synced_folder "./OnlineNewsSite/", "/var/www/html/OnlineNewsSite/", type: "virtualbox"
+
+    wb.vm.provision "shell", inline: $setup_project
+  end
+  # Define Box-VM for DB-Server
+  config.vm.define "DB-Server" do |db|
+    db.vm.box = "ubuntu/focal64"
+    db.vm.hostname = "db-server"
+    db.vm.provider "virtualbox" do |vb|
+      vb.cpus = 1
+      vb.memory = "1024"
+    end
+    db.vm.network "private_network", ip: "192.168.33.30"
+    db.vm.provision "shell", path: "install_db_server.sh", privileged: true
+    db.vm.provision "file", source: "./OnlineNewsSite/database/news-project.sql", destination: "~/scripts/setup-database.sql"
+
+    $setup_db = <<-'SCRIPT'
+      sudo mysql -u root -e 'CREATE DATABASE `news-project`'
+      sudo mysql -u root news-project < /home/vagrant/scripts/setup-database.sql
+      sudo mysql -u root -e "CREATE USER 'midterm'@'192.168.33.20' IDENTIFIED WITH mysql_native_password BY '123456';"
+      sudo mysql -u root -e "GRANT ALL PRIVILEGES ON \`news-project\`.* TO 'midterm'@'192.168.33.20' WITH GRANT OPTION;"
+      sudo mysql -u root -e "FLUSH PRIVILEGES;"
+    SCRIPT
+
+    db.vm.provision "shell", inline: $setup_db
+  end
+
+end
