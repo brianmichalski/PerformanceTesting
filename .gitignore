@@ -3,3 +3,9 @@ results/
 __pycache__/
 vagrant/midterm/.vagrant/
 vagrant/midterm/OnlineNewsSite/
+vagrant/finalproject_setup01/.vagrant/
+vagrant/finalproject_setup01/OnlineNewsSite_nodeA/
+vagrant/finalproject_setup01/OnlineNewsSite_nodeB/
+vagrant/finalproject_setup02/.vagrant/
+vagrant/finalproject_setup02/OnlineNewsSite_nodeA/
+vagrant/finalproject_setup02/OnlineNewsSite_nodeB/

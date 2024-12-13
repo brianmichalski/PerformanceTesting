@@ -6,7 +6,7 @@ This document provides instructions for setting up and running performance tests
 
 The application being tested is an **Online News Site**. It allows users to browse news articles, search for topics, and interact with content. The app is hosted on GitHub: [OnlineNewsSite](https://github.com/MobinaJafarian/OnlineNewsSite).
 
-You will need to clone the repository into both the `midterm` and `finalproject` (pending) directories within the Vagrant setup.
+You will need to clone the repository into both the `midterm` and `finalproject` directories within the Vagrant setup.
 
 ## Vagrant Setup
 
@@ -14,7 +14,7 @@ There are two Vagrant setups available:
 
 - **Midterm Setup (`vagrant/midterm/Vagrantfile`)**: This setup contains two separate machines—one for the **web server** and one for the **database server**. These servers operate independently.
   
-- **Final Project Setup (`vagrant/finalproject/Vagrantfile`)**: (pending).
+- **Final Project Setup (`vagrant/finalproject/Vagrantfile`)**: This setup consists of two nodes, **Node-A** and **Node-B**, where each node runs both a web server and a database server. The nodes work together in a basic **load balancing** configuration to simulate a more complex production environment.
 
 ## Python Packages
 
@@ -41,7 +41,8 @@ Here are the commands to run the tests for the Midterm Project:
 
 ### For the Final Project
 
-- **Load Balancing Test**: (pending).
+- **Load Balancing Test**: `python -m tests.stress_load_balance`  
+  Tests how the load balancing between Node-A and Node-B handles traffic.
 
 ## Results
 

@@ -1,0 +1,97 @@
+Vagrant.configure("2") do |config|
+
+  # Node-A (Web Server only)
+  config.vm.define "WebServer-A" do |node_a|
+    node_a.vm.box = "ubuntu/focal64"
+    node_a.vm.hostname = "node-a"
+    node_a.vm.provider "virtualbox" do |vb|
+      vb.cpus = 4
+      vb.memory = "2048"
+    end
+    node_a.vm.network "private_network", ip: "192.168.33.20"
+
+    node_a.vm.provision "shell", path: "install_app_server.sh", privileged: true
+
+    $setup_node_a = <<-'SCRIPT'
+      # Web Server Setup (Apache)
+      sudo sed -i '/<VirtualHost \*:80>/a \
+        <Directory /var/www/html/OnlineNewsSite>\
+                AllowOverride All\
+        </Directory>' /etc/apache2/sites-enabled/000-default.conf
+
+      sudo systemctl restart apache2
+
+      # Set DB parameters to connect to DB Server
+      sudo sed -i "s/define('DB_HOST'.*/define('DB_HOST', '192.168.33.40');/" /var/www/html/OnlineNewsSite/index.php
+      sudo sed -i "s/define('DB_USERNAME'.*/define('DB_USERNAME', 'midterm');/" /var/www/html/OnlineNewsSite/index.php
+      sudo sed -i "s/define('DB_PASSWORD'.*/define('DB_PASSWORD', '123456');/" /var/www/html/OnlineNewsSite/index.php
+    SCRIPT
+
+    node_a.vm.synced_folder "./OnlineNewsSite_nodeA/", "/var/www/html/OnlineNewsSite/", type: "virtualbox"
+
+    node_a.vm.provision "shell", inline: $setup_node_a
+  end
+
+  # Node-B (Web Server only)
+  config.vm.define "WebServer-B" do |node_b|
+    node_b.vm.box = "ubuntu/focal64"
+    node_b.vm.hostname = "node-b"
+    node_b.vm.provider "virtualbox" do |vb|
+      vb.cpus = 4
+      vb.memory = "2048"
+    end
+    node_b.vm.network "private_network", ip: "192.168.33.30"
+
+    node_b.vm.provision "shell", path: "install_app_server.sh", privileged: true
+
+    $setup_node_b = <<-'SCRIPT'
+      # Web Server Setup (Apache)
+      sudo sed -i '/<VirtualHost \*:80>/a \
+        <Directory /var/www/html/OnlineNewsSite>\
+                AllowOverride All\
+        </Directory>' /etc/apache2/sites-enabled/000-default.conf
+
+      sudo systemctl restart apache2
+
+      # Set DB parameters to connect to DB Server
+      sudo sed -i "s/define('DB_HOST'.*/define('DB_HOST', '192.168.33.40');/" /var/www/html/OnlineNewsSite/index.php
+      sudo sed -i "s/define('DB_USERNAME'.*/define('DB_USERNAME', 'midterm');/" /var/www/html/OnlineNewsSite/index.php
+      sudo sed -i "s/define('DB_PASSWORD'.*/define('DB_PASSWORD', '123456');/" /var/www/html/OnlineNewsSite/index.php
+    SCRIPT
+
+    node_b.vm.synced_folder "./OnlineNewsSite_nodeB/", "/var/www/html/OnlineNewsSite/", type: "virtualbox"
+
+    node_b.vm.provision "shell", inline: $setup_node_b
+  end
+
+  # DB Server (Database only)
+  config.vm.define "DB-Server" do |db_server|
+    db_server.vm.box = "ubuntu/focal64"
+    db_server.vm.hostname = "db-server"
+    db_server.vm.provider "virtualbox" do |vb|
+      vb.cpus = 2
+      vb.memory = "2048"
+    end
+    db_server.vm.network "private_network", ip: "192.168.33.40"
+
+    db_server.vm.provision "shell", path: "install_db_server.sh", privileged: true
+    db_server.vm.provision "file", source: "./OnlineNewsSite_nodeA/database/news-project.sql", destination: "~/scripts/setup-database.sql"
+
+    $setup_db_server = <<-'SCRIPT'
+      # Wait for MySQL to be fully up and running
+      sleep 30  # Wait for MySQL to initialize
+
+      # Create the Database
+      sudo mysql -u root -e 'CREATE DATABASE `news-project`'
+      sudo mysql -u root news-project < /home/vagrant/scripts/setup-database.sql
+      # Grant MySQL privileges for Node-A and Node-B access
+      sudo mysql -u root -e "CREATE USER 'midterm'@'192.168.33.20' IDENTIFIED WITH mysql_native_password BY '123456';"
+      sudo mysql -u root -e "CREATE USER 'midterm'@'192.168.33.30' IDENTIFIED WITH mysql_native_password BY '123456';"
+      sudo mysql -u root -e "GRANT ALL PRIVILEGES ON \`news-project\`.* TO 'midterm'@'192.168.33.20' WITH GRANT OPTION;"
+      sudo mysql -u root -e "GRANT ALL PRIVILEGES ON \`news-project\`.* TO 'midterm'@'192.168.33.30' WITH GRANT OPTION;"
+      sudo mysql -u root -e "FLUSH PRIVILEGES;"
+    SCRIPT
+
+    db_server.vm.provision "shell", inline: $setup_db_server
+  end
+end
